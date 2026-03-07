@@ -10,11 +10,21 @@ import AppRunner from './pages/AppRunner';
 import NovaDB from './pages/NovaDB';
 import DataSources from './pages/DataSources';
 import Users from './pages/Users';
+import { Spin } from 'antd';
 
 // 路由守卫 - 未登录跳转登录页
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, _hasHydrated } = useAuthStore();
   const location = useLocation();
+
+  // Wait for store to rehydrate before checking auth
+  if (!_hasHydrated) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
@@ -24,7 +34,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 // 公开路由守卫 - 已登录用户访问跳转到 /apps
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, _hasHydrated } = useAuthStore();
+
+  // Wait for store to rehydrate before checking auth
+  if (!_hasHydrated) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   if (isAuthenticated) {
     return <Navigate to="/apps" replace />;

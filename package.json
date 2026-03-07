@@ -16,5 +16,8 @@
   },
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "devDependencies": {
+    "@types/pg": "^8.18.0"
+  }
 }

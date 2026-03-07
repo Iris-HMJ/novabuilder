@@ -118,7 +118,7 @@ novabuilder/
 
 ### 当前模块
 > ✅ Step 4: 查询执行引擎 —— 已完成
-> 🔄 Step 5: NovaDB —— 开发中
+> ✅ Step 5: NovaDB —— 已完成
 
 ### 模块推进顺序
 

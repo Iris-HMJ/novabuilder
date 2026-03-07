@@ -17,6 +17,8 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
   login: (user: LoginUser, accessToken: string, refreshToken: string) => void;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
@@ -29,6 +31,8 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
+      _hasHydrated: false,
+      setHasHydrated: (hasHydrated) => set({ _hasHydrated: hasHydrated }),
       login: (user, accessToken, refreshToken) =>
         set({
           user: {
@@ -54,6 +58,9 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'novabuilder-auth',
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

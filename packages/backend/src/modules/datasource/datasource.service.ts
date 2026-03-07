@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DataSource, DataSourceStatus } from './datasource.entity';
@@ -7,12 +7,36 @@ import { DataSourceAdapterFactory } from './adapters/datasource-adapter.factory'
 import { TestConnectionResult, SchemaResult } from './adapters/datasource-adapter.interface';
 
 @Injectable()
-export class DataSourceService {
+export class DataSourceService implements OnModuleInit {
   constructor(
     @InjectRepository(DataSource)
     private dataSourceRepository: Repository<DataSource>,
     private encryptionService: EncryptionService,
   ) {}
+
+  async onModuleInit() {
+    await this.registerNovaDBAsBuiltIn();
+  }
+
+  // Register NovaDB as a built-in datasource
+  async registerNovaDBAsBuiltIn() {
+    const existing = await this.dataSourceRepository.findOne({
+      where: { type: 'novadb', name: 'NovaDB (内置)' },
+    });
+
+    if (!existing) {
+      const novadbDataSource = this.dataSourceRepository.create({
+        name: 'NovaDB (内置)',
+        workspaceId: 'system',
+        type: 'novadb',
+        config: this.encryptionService.encrypt(JSON.stringify({})),
+        status: 'connected',
+        createdBy: 'system',
+      });
+      await this.dataSourceRepository.save(novadbDataSource);
+      console.log('NovaDB registered as built-in datasource');
+    }
+  }
 
   async findAll(workspaceId: string): Promise<DataSource[]> {
     return this.dataSourceRepository.find({

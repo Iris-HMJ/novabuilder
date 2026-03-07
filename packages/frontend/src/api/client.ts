@@ -13,11 +13,22 @@ const apiClient = axios.create({
 // Request interceptor - add auth token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = useAuthStore.getState().accessToken;
-    console.log('Request token:', token ? 'exists' : 'missing', 'URL:', config.url);
-    if (token) {
+    // Get the store state
+    const state = useAuthStore.getState();
+    const token = state.accessToken;
+
+    // Only add token if the store has hydrated and user is authenticated
+    // This allows login/register requests to work without a token
+    if (state._hasHydrated && state.isAuthenticated && token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else if (!token && state._hasHydrated) {
+      // Only warn if store has hydrated but no token (user logged out or not logged in)
+      console.warn('Request missing token:', {
+        url: config.url,
+        isAuthenticated: state.isAuthenticated,
+      });
     }
+
     return config;
   },
   (error) => Promise.reject(error)

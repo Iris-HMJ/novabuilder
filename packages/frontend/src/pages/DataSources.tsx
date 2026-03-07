@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Table, Button, Space, Tag, Modal, Form, Input, Select, Switch, Card, Row, Col, message, Popconfirm, Divider, Drawer, Descriptions, Badge } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, ApiOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, EditOutlined, CheckCircleOutlined, CloseCircleOutlined, ApiOutlined } from '@ant-design/icons';
 import { dataSourceApi, DataSource, DataSourceStatus } from '../api/datasource';
 
 const { Option } = Select;
