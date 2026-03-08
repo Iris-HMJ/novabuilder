@@ -5,6 +5,7 @@ import { Query, QueryType } from './query.entity';
 import { DataSourceService } from '../datasource/datasource.service';
 import { DataSourceAdapterFactory } from '../datasource/adapters/datasource-adapter.factory';
 import { EncryptionService } from '../../common/encryption.service';
+import { NovaDBService } from '../novadb/novadb.service';
 import axios from 'axios';
 
 interface QueryResultData {
@@ -24,6 +25,7 @@ export class QueryService {
     private queryRepository: Repository<Query>,
     private dataSourceService: DataSourceService,
     private encryptionService: EncryptionService,
+    private novadbService: NovaDBService,
   ) {}
 
   async findAllByAppId(appId: string): Promise<Query[]> {
@@ -164,6 +166,22 @@ export class QueryService {
     sql: string,
     params?: Record<string, any>
   ): Promise<QueryResultData> {
+    // Handle NovaDB built-in datasource
+    if (dataSourceId === 'novadb-builtin') {
+      // Convert params object to array for NovaDB
+      const paramArray = params ? Object.values(params) : [];
+      const result = await this.novadbService.executeSql(sql, paramArray);
+
+      if (result.error) {
+        throw new BadRequestException(result.error);
+      }
+
+      return {
+        data: result.rows,
+        rowsAffected: result.rowCount,
+      };
+    }
+
     // Replace {{variable}} with parameterized placeholders
     const { parameterizedSql, paramValues } = this.replaceVariables(sql, params);
 
@@ -322,6 +340,20 @@ export class QueryService {
 
       default:
         throw new BadRequestException(`不支持的操作类型: ${operation}`);
+    }
+
+    // Handle NovaDB built-in datasource
+    if (dataSourceId === 'novadb-builtin') {
+      const result = await this.novadbService.executeSql(sql, paramValues);
+
+      if (result.error) {
+        throw new BadRequestException(result.error);
+      }
+
+      return {
+        data: operation === 'select' ? result.rows : null,
+        rowsAffected: result.rowCount,
+      };
     }
 
     const dataSource = await this.dataSourceService.findById(dataSourceId);

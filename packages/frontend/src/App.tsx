@@ -1,11 +1,11 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import AppLayout from './components/AppLayout';
-import AppEditorLayout from './components/AppEditorLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import AppEditor from './pages/AppEditor';
+import AppEditorPage from './pages/AppEditor/AppEditorPage';
+import AppPreviewPage from './pages/AppPreview/AppPreviewPage';
 import AppRunner from './pages/AppRunner';
 import NovaDB from './pages/NovaDB';
 import DataSources from './pages/DataSources';
@@ -76,12 +76,19 @@ function App() {
         path="/apps/:appId/edit"
         element={
           <ProtectedRoute>
-            <AppEditorLayout />
+            <AppEditorPage />
           </ProtectedRoute>
         }
-      >
-        <Route index element={<AppEditor />} />
-      </Route>
+      />
+      {/* 预览页面 - 独立全屏布局 */}
+      <Route
+        path="/apps/:appId/preview"
+        element={
+          <ProtectedRoute>
+            <AppPreviewPage />
+          </ProtectedRoute>
+        }
+      />
       {/* 其他页面 - 使用 AppLayout */}
       <Route
         path="/"

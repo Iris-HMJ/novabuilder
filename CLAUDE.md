@@ -159,7 +159,7 @@ novabuilder/
   - API: CRUD + execute + preview
   - 完成标志：能对已连接的数据源执行 SQL/JS 查询并看到结果
 
-- [ ] Step 5: NovaDB
+- [x] Step 5: NovaDB
   - novadb schema: nova_tables + nova_columns + 动态创建用户表
   - 表 CRUD / 列 CRUD / 数据 CRUD / 搜索 / 排序 / 分页
   - SQL 编辑器 (CodeMirror)
