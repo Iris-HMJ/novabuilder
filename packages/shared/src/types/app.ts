@@ -18,12 +18,38 @@ export interface App {
   publishedAt: Date | null;
 }
 
+// ============== Step 6.7: Navigation Config ==============
+
+export interface NavigationConfig {
+  type: 'sidebar';
+  position: 'left';
+  theme: 'dark' | 'light';
+  collapsed: boolean;
+  collapsible: boolean;
+  showAppName: boolean;
+  width: number;
+  collapsedWidth: number;
+}
+
+// Default navigation config for new apps
+export const defaultNavigationConfig: NavigationConfig = {
+  type: 'sidebar',
+  position: 'left',
+  theme: 'light',
+  collapsed: false,
+  collapsible: true,
+  showAppName: true,
+  width: 200,
+  collapsedWidth: 48,
+};
+
 // ============== Step 6.1: Editor Data Structures ==============
 
 export interface AppDefinition {
   version: string;
   pages: PageDef[];
   globalSettings?: GlobalSettings;
+  navigation?: NavigationConfig;
 }
 
 export interface GlobalSettings {
@@ -41,6 +67,7 @@ export interface PageDef {
   path?: string;
   hidden?: boolean;
   onLoadQueries?: string[];
+  icon?: string;
 }
 
 // Partial type helper for updates

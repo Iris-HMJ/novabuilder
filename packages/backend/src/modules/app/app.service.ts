@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { App } from './app.entity';
-import { AppDefinition } from '@novabuilder/shared/types/app';
+import { AppDefinition, defaultNavigationConfig } from '@novabuilder/shared/types/app';
 
 @Injectable()
 export class AppService {
@@ -33,12 +33,25 @@ export class AppService {
   }
 
   async create(name: string, workspaceId: string, userId: string): Promise<App> {
+    const homePageId = Math.random().toString(36).substring(2, 11);
     const app = this.appRepository.create({
       name,
       workspaceId,
       createdBy: userId,
       status: 'draft',
-      definitionDraft: { version: '1.0', pages: [] },
+      definitionDraft: {
+        version: '1.0.0',
+        pages: [
+          {
+            id: homePageId,
+            name: '首页',
+            isHome: true,
+            components: [],
+            icon: 'HomeOutlined',
+          },
+        ],
+        navigation: defaultNavigationConfig,
+      },
     });
     return this.appRepository.save(app);
   }

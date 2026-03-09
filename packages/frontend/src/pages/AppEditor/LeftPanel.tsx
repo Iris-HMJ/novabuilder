@@ -546,6 +546,8 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ onQuerySelect, onNewQuery }) => {
           display: 'flex',
           flexDirection: 'column',
           flexShrink: 0,
+          boxShadow: activeView ? '2px 0 8px rgba(0, 0, 0, 0.1)' : 'none',
+          transition: 'box-shadow 0.2s ease',
         }}
       >
         <Tooltip title="组件" placement="right">

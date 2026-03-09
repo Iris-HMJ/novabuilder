@@ -92,6 +92,10 @@ const Canvas: React.FC<CanvasProps> = ({ isDraggingFromPanel }) => {
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
 
+  // Track mouse for click vs long press detection
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressRef = useRef(false);
+
   // Alignment guides
   const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuide[]>([]);
 
@@ -505,6 +509,14 @@ const Canvas: React.FC<CanvasProps> = ({ isDraggingFromPanel }) => {
 
   // Handle mouse up
   const handleCanvasMouseUp = useCallback(() => {
+    // Clear long press timer
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    // Don't reset isLongPressRef here - let handleComponentClick check it
+    // This ensures long press + drag doesn't open panel after mouseup
+
     // Selection box - select components within box
     if (isSelecting && selectionBox) {
       const minX = Math.min(selectionBox.startX, selectionBox.endX);
@@ -547,6 +559,12 @@ const Canvas: React.FC<CanvasProps> = ({ isDraggingFromPanel }) => {
   const handleComponentMouseDown = useCallback((e: React.MouseEvent, compId: string) => {
     e.stopPropagation();
 
+    // Start long press timer (300ms)
+    isLongPressRef.current = false;
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressRef.current = true;
+    }, 300);
+
     const comp = components.find(c => c.id === compId);
     if (!comp) return;
 
@@ -586,19 +604,25 @@ const Canvas: React.FC<CanvasProps> = ({ isDraggingFromPanel }) => {
         startComponentY: comp.style.y,
       });
     }
-
-    // Select component (with shift for multi-select)
-    if (e.shiftKey) {
-      selectComponent(compId, true);
-    } else if (!selectedComponentIds.includes(compId)) {
-      selectComponent(compId, false);
-    }
   }, [components, selectedComponentIds, selectComponent, appDefinition, panOffset, zoom, pushState]);
 
   // Handle component click
   const handleComponentClick = useCallback((e: React.MouseEvent, componentId: string) => {
     e.stopPropagation();
 
+    // Clear long press timer
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    // If it was a long press, don't select (it's a drag)
+    if (isLongPressRef.current) {
+      isLongPressRef.current = false;
+      return;
+    }
+
+    // Quick click - select component and open panel
     if (e.shiftKey) {
       selectComponent(componentId, true);
     } else if (!selectedComponentIds.includes(componentId)) {
@@ -919,9 +943,10 @@ const Canvas: React.FC<CanvasProps> = ({ isDraggingFromPanel }) => {
         position: 'relative',
         overflow: 'hidden',
         cursor: isPanning ? 'grabbing' : isSelecting ? 'crosshair' : isSpacePressed ? 'grab' : 'default',
+        height: '100%',
       }}
     >
-      {renderGrid()}
+        {renderGrid()}
         {renderAlignmentGuides()}
         {renderSelectionBox()}
 
@@ -931,27 +956,27 @@ const Canvas: React.FC<CanvasProps> = ({ isDraggingFromPanel }) => {
 
         {/* Zoom indicator */}
         <div
-            style={{
-              position: 'absolute',
-              bottom: 8,
-              left: 8,
-              background: 'rgba(0, 0, 0, 0.6)',
-              color: '#fff',
-              padding: '4px 8px',
-              borderRadius: 4,
-              fontSize: 11,
-              cursor: 'pointer',
-              userSelect: 'none',
-            }}
-            onClick={() => {
-              const levels = [0.5, 0.75, 1, 1.5, 2];
-              const currentIdx = levels.findIndex(l => Math.abs(l - zoom) < 0.1);
-              const nextIdx = (currentIdx + 1) % levels.length;
-              setZoom(levels[nextIdx]);
-            }}
-          >
-            {Math.round(zoom * 100)}%
-          </div>
+          style={{
+            position: 'absolute',
+            bottom: 8,
+            left: 8,
+            background: 'rgba(0, 0, 0, 0.6)',
+            color: '#fff',
+            padding: '4px 8px',
+            borderRadius: 4,
+            fontSize: 11,
+            cursor: 'pointer',
+            userSelect: 'none',
+          }}
+          onClick={() => {
+            const levels = [0.5, 0.75, 1, 1.5, 2];
+            const currentIdx = levels.findIndex(l => Math.abs(l - zoom) < 0.1);
+            const nextIdx = (currentIdx + 1) % levels.length;
+            setZoom(levels[nextIdx]);
+          }}
+        >
+          {Math.round(zoom * 100)}%
+        </div>
 
         {/* Hint text when dragging */}
         {isDraggingFromPanel && (

@@ -5,17 +5,19 @@ import { ArrowLeftOutlined, CloseOutlined } from '@ant-design/icons';
 import { appApi } from '../../api/app';
 import { useEditorStore } from '../../stores/editorStore';
 import PageRenderer from '../../engine/PageRenderer';
+import { AppShell } from '../../components/AppShell';
 
 const AppPreviewPage: React.FC = () => {
   const { appId } = useParams<{ appId: string }>();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-  const [appName, setAppName] = useState('');
   const [showToolbar, setShowToolbar] = useState(true);
   const [toolbarTimeout, setToolbarTimeout] = useState<number | null>(null);
+  const [currentPageId, setCurrentPageId] = useState<string>('');
 
   const loadApp = useEditorStore((state) => state.loadApp);
   const appDefinition = useEditorStore((state) => state.appDefinition);
+  const appName = useEditorStore((state) => state.appName);
 
   // Load app data and initialize store
   useEffect(() => {
@@ -43,7 +45,12 @@ const AppPreviewPage: React.FC = () => {
 
         // Initialize editor store with app data (so event handlers work)
         loadApp(appId, app.name, definition);
-        setAppName(app.name);
+
+        // Set current page to home page or first page
+        const homePage = definition.pages.find(p => p.isHome) || definition.pages[0];
+        if (homePage) {
+          setCurrentPageId(homePage.id);
+        }
 
         // Auto-hide toolbar after 3 seconds
         const timeout = window.setTimeout(() => {
@@ -97,7 +104,12 @@ const AppPreviewPage: React.FC = () => {
     );
   }
 
-  const currentPage = appDefinition?.pages[0];
+  const currentPage = appDefinition?.pages.find(p => p.id === currentPageId) || appDefinition?.pages[0];
+
+  // Handle page change
+  const handlePageChange = (pageId: string) => {
+    setCurrentPageId(pageId);
+  };
 
   return (
     <div
@@ -146,10 +158,18 @@ const AppPreviewPage: React.FC = () => {
         </div>
       </div>
 
-      {/* App content */}
-      <div style={{ width: '100%', height: '100%', background: '#fff', paddingTop: 40 }}>
-        {currentPage ? (
-          <PageRenderer pageDef={currentPage} />
+      {/* App content with AppShell */}
+      <div style={{ width: '100%', height: '100%', paddingTop: 40 }}>
+        {appDefinition && currentPage ? (
+          <AppShell
+            appDefinition={appDefinition}
+            appName={appName}
+            currentPageId={currentPageId}
+            onPageChange={handlePageChange}
+            mode="preview"
+          >
+            <PageRenderer pageDef={currentPage} />
+          </AppShell>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999' }}>
             无页面内容

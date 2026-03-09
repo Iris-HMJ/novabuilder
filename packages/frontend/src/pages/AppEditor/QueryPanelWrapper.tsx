@@ -978,6 +978,7 @@ const QueryPanelWrapper: React.FC<QueryPanelWrapperProps> = (props) => {
   return (
     <div
       style={{
+        width: '100%',
         height: panelExpanded ? panelHeight : 32,
         transition: 'height 0.2s ease',
         overflow: 'hidden',

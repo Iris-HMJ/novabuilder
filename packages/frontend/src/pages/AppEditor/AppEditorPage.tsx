@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Spin, message, Modal } from 'antd';
+import { Spin, message, Modal, Layout } from 'antd';
 import { useEditorStore } from '../../stores/editorStore';
 import { useHistoryStore } from '../../stores/historyStore';
 import { appApi } from '../../api/app';
@@ -10,6 +10,7 @@ import LeftPanel from './LeftPanel';
 import Canvas from './Canvas';
 import RightPanel from './RightPanel';
 import QueryPanelWrapper, { QueryPanelRef } from './QueryPanelWrapper';
+import { AppShell } from '../../components/AppShell';
 
 // Create empty app definition
 const createEmptyAppDefinition = (): AppDefinition => ({
@@ -36,6 +37,9 @@ const AppEditorPage: React.FC = () => {
     setSaveStatus,
     setDirty,
     appDefinition,
+    appName,
+    currentPageId,
+    setCurrentPage,
     isDirty,
   } = useEditorStore();
 
@@ -276,14 +280,7 @@ const AppEditorPage: React.FC = () => {
   }
 
   return (
-    <div
-      style={{
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        background: '#f5f5f5',
-      }}
-    >
+    <Layout style={{ height: '100vh', background: '#f5f5f5' }}>
       {/* Top Bar */}
       <EditorTopBar
         appId={appId || null}
@@ -292,23 +289,57 @@ const AppEditorPage: React.FC = () => {
       />
 
       {/* Main Content */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {/* Left Panel */}
-        <LeftPanel
-          onQuerySelect={(queryId) => queryPanelRef.current?.selectQuery(queryId)}
-          onNewQuery={() => queryPanelRef.current?.openNewQueryModal()}
-        />
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
+        {/* Canvas Area with AppShell */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingLeft: 48, paddingRight: 48, overflow: 'hidden' }}>
+          <div style={{ flex: 1, padding: 4, overflow: 'hidden' }}>
+            {appDefinition && (
+              <AppShell
+                appDefinition={appDefinition}
+                appName={appName}
+                currentPageId={currentPageId || ''}
+                onPageChange={setCurrentPage}
+                mode="edit"
+              >
+                <Canvas isDraggingFromPanel={isDraggingFromPanel} />
+              </AppShell>
+            )}
+          </div>
 
-        {/* Canvas */}
-        <Canvas isDraggingFromPanel={isDraggingFromPanel} />
+          {/* Bottom Query Panel */}
+          {appId && <QueryPanelWrapper queryPanelRef={queryPanelRef} appId={appId} />}
+        </div>
 
-        {/* Right Panel */}
-        <RightPanel />
+        {/* Left Panel - floating overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            zIndex: 10,
+          }}
+        >
+          <LeftPanel
+            onQuerySelect={(queryId) => queryPanelRef.current?.selectQuery(queryId)}
+            onNewQuery={() => queryPanelRef.current?.openNewQueryModal()}
+          />
+        </div>
+
+        {/* Right Panel - floating overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 0,
+            bottom: 0,
+            zIndex: 10,
+          }}
+        >
+          <RightPanel />
+        </div>
       </div>
-
-      {/* Bottom Query Panel */}
-      {appId && <QueryPanelWrapper queryPanelRef={queryPanelRef} appId={appId} />}
-    </div>
+    </Layout>
   );
 };
 

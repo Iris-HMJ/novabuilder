@@ -7,7 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@novabuilder/shared': path.resolve(__dirname, '../../shared/dist'),
+      '@novabuilder/shared': path.resolve(__dirname, '../shared/dist'),
     },
   },
   server: {

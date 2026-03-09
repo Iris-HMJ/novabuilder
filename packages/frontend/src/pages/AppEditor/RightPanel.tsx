@@ -640,6 +640,8 @@ const RightPanel: React.FC = () => {
           display: 'flex',
           flexDirection: 'column',
           flexShrink: 0,
+          boxShadow: panelExpanded ? '-2px 0 8px rgba(0, 0, 0, 0.1)' : 'none',
+          transition: 'box-shadow 0.2s ease',
         }}
       >
         <Tooltip title="属性设置" placement="left">

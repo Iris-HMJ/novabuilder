@@ -3,21 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Typography, Button, Spin, Result } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { appApi } from '../api/app';
+import { AppShell } from '../components/AppShell';
+import PageRenderer from '../engine/PageRenderer';
+import type { AppDefinition } from '@novabuilder/shared';
 
 const { Title, Text } = Typography;
-
-interface PublishedApp {
-  id: string;
-  name: string;
-  definition: any;
-}
 
 const AppRunner = () => {
   const { appId } = useParams<{ appId: string }>();
   const navigate = useNavigate();
-  const [app, setApp] = useState<PublishedApp | null>(null);
+  const [app, setApp] = useState<{ id: string; name: string; definition: AppDefinition } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPageId, setCurrentPageId] = useState<string>('');
 
   useEffect(() => {
     const fetchPublishedApp = async () => {
@@ -25,6 +23,12 @@ const AppRunner = () => {
       try {
         const data = await appApi.getPublished(appId);
         setApp(data);
+        // Set current page to home page or first page
+        const definition = data.definition;
+        const homePage = definition?.pages?.find((p: any) => p.isHome) || definition?.pages?.[0];
+        if (homePage) {
+          setCurrentPageId(homePage.id);
+        }
       } catch (err: any) {
         setError(err.response?.data?.message || '获取应用失败');
       } finally {
@@ -33,6 +37,14 @@ const AppRunner = () => {
     };
     fetchPublishedApp();
   }, [appId]);
+
+  // Handle page change
+  const handlePageChange = (pageId: string) => {
+    setCurrentPageId(pageId);
+  };
+
+  // Get current page
+  const currentPage = app?.definition?.pages?.find((p: any) => p.id === currentPageId) || app?.definition?.pages?.[0];
 
   if (loading) {
     return (
@@ -58,45 +70,49 @@ const AppRunner = () => {
   }
 
   return (
-    <div>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Header - minimal for run mode */}
       <div style={{
         background: '#fff',
-        padding: '12px 24px',
+        padding: '8px 16px',
         borderBottom: '1px solid #f0f0f0',
         display: 'flex',
         alignItems: 'center',
         gap: 16,
+        flexShrink: 0,
       }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/apps')}>
-          返回
+        <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate('/apps')}>
+          返回应用列表
         </Button>
-        <Title level={4} style={{ margin: 0 }}>
+        <Title level={5} style={{ margin: 0 }}>
           {app?.name}
         </Title>
-        <Text type="secondary">(已发布)</Text>
+        <Text type="secondary" style={{ fontSize: 12 }}>(已发布)</Text>
       </div>
 
-      <div style={{
-        padding: 24,
-        minHeight: 'calc(100vh - 150px)',
-        background: '#f5f5f5',
-      }}>
-        {/* Step 6: 这里会渲染已发布应用的组件 */}
-        <div style={{
-          background: '#fff',
-          borderRadius: 8,
-          padding: 48,
-          textAlign: 'center',
-          minHeight: 400,
-        }}>
-          <Title level={3}>{app?.name}</Title>
-          <div style={{ color: '#888', marginTop: 16 }}>
-            (Step 6 预览与运行正在开发中)
+      {/* App content with AppShell - full screen */}
+      <div style={{ flex: 1, overflow: 'hidden' }}>
+        {app?.definition && currentPage ? (
+          <AppShell
+            appDefinition={app.definition}
+            appName={app?.name || ''}
+            currentPageId={currentPageId}
+            onPageChange={handlePageChange}
+            mode="run"
+          >
+            <PageRenderer pageDef={currentPage} />
+          </AppShell>
+        ) : (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            color: '#999',
+          }}>
+            无页面内容
           </div>
-          <div style={{ marginTop: 24, color: '#ccc', fontSize: 12 }}>
-            definition: {JSON.stringify(app?.definition)}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

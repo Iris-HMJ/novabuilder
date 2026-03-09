@@ -221,6 +221,18 @@ const createPage = (name: string, isHome: boolean = false): PageDef => ({
   onLoadQueries: [],
 });
 
+// Default navigation config
+const defaultNavigationConfig = {
+  type: 'sidebar' as const,
+  position: 'left' as const,
+  theme: 'light' as const,
+  collapsed: false,
+  collapsible: true,
+  showAppName: true,
+  width: 200,
+  collapsedWidth: 48,
+};
+
 // Create empty app definition
 const createEmptyAppDefinition = (): AppDefinition => ({
   version: '1.0.0',
@@ -335,8 +347,21 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
         name: page.name || '未命名页面',
         components: page.components || [],
         isHome: page.isHome || false,
+        icon: page.icon,
       }))
     };
+
+    // Ensure navigation config exists and uses light theme (for backward compatibility)
+    if (!appDefinition.navigation || appDefinition.navigation.theme !== 'light') {
+      appDefinition = {
+        ...appDefinition,
+        navigation: {
+          ...defaultNavigationConfig,
+          ...appDefinition.navigation,
+          theme: 'light', // Always use light theme
+        },
+      };
+    }
 
     const currentPageId = appDefinition.pages[0]?.id || null;
     set({
