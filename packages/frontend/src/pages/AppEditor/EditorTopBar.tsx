@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Space, Typography, Input, Tooltip, Select, Divider } from 'antd';
+import { Button, Space, Typography, Input, Tooltip, Divider } from 'antd';
 import {
   ArrowLeftOutlined,
   UndoOutlined,
@@ -32,9 +32,6 @@ const EditorTopBar: React.FC<EditorTopBarProps> = ({ appId, onPublish, onAI }) =
     appName,
     setAppName,
     saveStatus,
-    appDefinition,
-    currentPageId,
-    setCurrentPage,
   } = useEditorStore();
 
   const { canUndo, canRedo, undo, redo } = useHistoryStore();
@@ -77,10 +74,6 @@ const EditorTopBar: React.FC<EditorTopBarProps> = ({ appId, onPublish, onAI }) =
       setEditedName(appName);
       setIsEditingName(false);
     }
-  };
-
-  const handlePageChange = (pageId: string) => {
-    setCurrentPage(pageId);
   };
 
   const handleUndo = () => {
@@ -201,22 +194,6 @@ const EditorTopBar: React.FC<EditorTopBarProps> = ({ appId, onPublish, onAI }) =
         </Tooltip>
 
         <Divider type="vertical" style={{ margin: '0 8px' }} />
-
-        <Select
-          value={currentPageId}
-          onChange={handlePageChange}
-          size="small"
-          style={{ width: 140 }}
-          options={appDefinition.pages.map((page) => ({
-            value: page.id,
-            label: (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                {page.isHome && <span style={{ color: '#52c41a', fontSize: 10 }}>🏠</span>}
-                {page.name}
-              </span>
-            ),
-          }))}
-        />
       </Space>
 
       {/* Right section */}
