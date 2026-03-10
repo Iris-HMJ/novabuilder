@@ -636,7 +636,7 @@ const RightPanel: React.FC = () => {
           transition: 'box-shadow 0.2s ease',
         }}
       >
-        <Tooltip title="属性" placement="left">
+        <Tooltip title="属性设置" placement="left">
           <div
             onClick={handleToggle}
             style={{
