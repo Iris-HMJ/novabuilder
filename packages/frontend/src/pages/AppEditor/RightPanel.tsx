@@ -2,6 +2,8 @@ import React, { useState, useCallback } from 'react';
 import { Tabs, Empty, Form, Input, InputNumber, Select, Switch, Button, Space, Typography, Tooltip, Modal, ColorPicker } from 'antd';
 import {
   SettingOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   PlusOutlined,
   DeleteOutlined,
   PlayCircleOutlined,
@@ -636,7 +638,7 @@ const RightPanel: React.FC = () => {
           transition: 'box-shadow 0.2s ease',
         }}
       >
-        <Tooltip title="属性设置" placement="left">
+        <Tooltip title={panelExpanded ? "收起面板" : "展开面板"} placement="left">
           <div
             onClick={handleToggle}
             style={{
@@ -653,7 +655,7 @@ const RightPanel: React.FC = () => {
               transition: 'all 0.2s',
             }}
           >
-            <SettingOutlined style={{ fontSize: 20 }} />
+            {panelExpanded ? <MenuFoldOutlined style={{ fontSize: 20 }} /> : <MenuUnfoldOutlined style={{ fontSize: 20 }} />}
           </div>
         </Tooltip>
       </div>
