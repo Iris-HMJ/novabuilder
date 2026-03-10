@@ -633,6 +633,8 @@ const RightPanel: React.FC = () => {
           display: 'flex',
           flexDirection: 'column',
           flexShrink: 0,
+          zIndex: 11,
+          pointerEvents: 'auto',
           boxShadow: panelExpanded ? '-2px 0 8px rgba(0, 0, 0, 0.1)' : 'none',
           transition: 'box-shadow 0.2s ease',
         }}
@@ -648,6 +650,8 @@ const RightPanel: React.FC = () => {
               justifyContent: 'center',
               cursor: 'pointer',
               position: 'relative',
+              zIndex: 11,
+              pointerEvents: 'auto',
               background: panelExpanded ? '#e6f7ff' : 'transparent',
               color: panelExpanded ? '#1677ff' : '#595959',
               borderRight: panelExpanded ? '3px solid #1677ff' : '3px solid transparent',
