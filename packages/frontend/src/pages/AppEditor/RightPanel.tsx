@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import { Tabs, Empty, Form, Input, InputNumber, Select, Switch, Button, Space, Typography, Tooltip, Modal, ColorPicker } from 'antd';
 import {
   SettingOutlined,
-  CloseOutlined,
   PlusOutlined,
   DeleteOutlined,
   PlayCircleOutlined,
@@ -36,7 +35,6 @@ const RightPanel: React.FC = () => {
   const [actionForm] = Form.useForm();
 
   const {
-    clearSelection,
     updateComponent,
     updateComponentStyle,
     appDefinition,
@@ -190,12 +188,6 @@ const RightPanel: React.FC = () => {
           <Space>
             <Text strong>{componentDef.name}</Text>
           </Space>
-          <Button
-            type="text"
-            size="small"
-            icon={<CloseOutlined />}
-            onClick={clearSelection}
-          />
         </div>
         <Form layout="vertical" size="small">
           <Form.Item label="组件名称">
