@@ -60,7 +60,7 @@ const RightPanel: React.FC = () => {
     if (selectedComponent && !panelExpanded) {
       setPanelExpanded(true);
     }
-  }, [selectedComponent, panelExpanded]);
+  }, [selectedComponent]);
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -642,6 +642,7 @@ const RightPanel: React.FC = () => {
         <Tooltip title="属性设置" placement="left">
           <div
             onClick={handleToggle}
+            onMouseDown={(e) => e.stopPropagation()}
             style={{
               width: 48,
               height: 48,
