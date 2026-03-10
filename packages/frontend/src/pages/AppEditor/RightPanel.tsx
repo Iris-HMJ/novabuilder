@@ -62,7 +62,8 @@ const RightPanel: React.FC = () => {
     }
   }, [selectedComponent, panelExpanded]);
 
-  const handleToggle = () => {
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setPanelExpanded(!panelExpanded);
   };
 
