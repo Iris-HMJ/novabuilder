@@ -167,7 +167,7 @@ novabuilder/
   - 📐 界面参考：界面设计文档「七、NovaDB 管理」— 含左侧表列表 (Sider 200px)、可编辑单元格 (双击编辑/失焦保存)、添加列弹窗、底部可折叠 SQL 编辑器面板、行选择批量删除
   - 完成标志：能建表、加列、增删改查数据、跑 SQL
 
-- [ ] Step 6: 可视化编辑器
+- [x] Step 6: 可视化编辑器
   - 组件树数据结构 (AppDefinition > PageDef > ComponentNode)
   - Zustand stores: editor / component / query / history
   - @dnd-kit 拖拽画布 + 对齐辅助线 + 网格吸附
@@ -192,7 +192,7 @@ novabuilder/
 
 **第二阶段：AI 能力叠加**
 
-- [ ] Step 7: AI 生成引擎
+- [x] Step 7: AI 生成引擎
   - Prompt 模板库 (PromptManager) + 4 个模板: 需求分析 / 应用生成 / 增量修改 / SQL 生成
   - AI Service: analyzeRequirement → generateApp → modifyApp → generateSQL
   - AI 会话存储 (ai_sessions + ai_messages)
@@ -208,20 +208,20 @@ novabuilder/
     - API: POST /ai/analyze → /ai/generate (SSE 流式) → /ai/modify → /ai/generate-sql
   - 完成标志：输入描述 → 需求摘要 → 确认 → 生成可用应用
 
-- [ ] Step 8: 增量对话修改
+- [x] Step 8: 增量对话修改
   - 对话式组件修改 ("把表格第二列改成日期") → AppPatch
   - AI 查询生成 (描述 → SQL)
   - 修改预览与确认
   - 完成标志：可通过对话调整已生成应用的 UI 和查询
 
-- [ ] Step 9: 权限完善 + 安全加固
+- [x] Step 9: 权限完善 + 安全加固
   - RBAC 权限控制补全 (管理后台用户管理页)
   - 路由级权限拦截 + End User 只能访问已发布应用
   - CORS 白名单 + Rate Limit + 输入消毒 (class-validator)
   - 📐 界面参考：界面设计文档「九、用户管理」— Admin 专属页面，含用户表格 (角色 Tag 颜色区分 / 状态 Badge)、邀请用户弹窗 (用户名+邮箱+密码+角色选择)、操作下拉菜单 (修改角色/禁用/启用/删除)
   - 完成标志：三角色权限完全生效，无安全漏洞
 
-- [ ] Step 10: 集成测试 + 部署收尾
+- [x] Step 10: 集成测试 + 部署收尾
   - 端到端流程测试 (注册 → 创建应用 → AI 生成 → 编辑 → 发布 → End User 使用)
   - Bug 修复 + 性能优化
   - README + 部署文档 + .env.example

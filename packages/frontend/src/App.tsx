@@ -12,6 +12,8 @@ import DataSources from './pages/DataSources';
 import Users from './pages/Users';
 import { Spin } from 'antd';
 
+type UserRole = 'admin' | 'builder' | 'end_user';
+
 // 路由守卫 - 未登录跳转登录页
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, _hasHydrated } = useAuthStore();
@@ -29,6 +31,37 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
+  return <>{children}</>;
+}
+
+// 角色守卫 - 检查用户角色
+function RoleGuard({
+  children,
+  allowedRoles,
+}: {
+  children: React.ReactNode;
+  allowedRoles: UserRole[];
+}) {
+  const { user, _hasHydrated } = useAuthStore();
+
+  if (!_hasHydrated) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  // If no user, let ProtectedRoute handle redirect
+  if (!user) {
+    return <>{children}</>;
+  }
+
+  // Check if user role is allowed
+  if (!allowedRoles.includes(user.role as UserRole)) {
+    return <Navigate to="/apps" replace />;
+  }
+
   return <>{children}</>;
 }
 
@@ -71,21 +104,25 @@ function App() {
           </PublicRoute>
         }
       />
-      {/* 编辑器页面 - 独立全屏布局 */}
+      {/* 编辑器页面 - 仅 admin 和 builder 可访问 */}
       <Route
         path="/apps/:appId/edit"
         element={
           <ProtectedRoute>
-            <AppEditorPage />
+            <RoleGuard allowedRoles={['admin', 'builder']}>
+              <AppEditorPage />
+            </RoleGuard>
           </ProtectedRoute>
         }
       />
-      {/* 预览页面 - 独立全屏布局 */}
+      {/* 预览页面 - 仅 admin 和 builder 可访问 */}
       <Route
         path="/apps/:appId/preview"
         element={
           <ProtectedRoute>
-            <AppPreviewPage />
+            <RoleGuard allowedRoles={['admin', 'builder']}>
+              <AppPreviewPage />
+            </RoleGuard>
           </ProtectedRoute>
         }
       />
@@ -101,9 +138,33 @@ function App() {
         <Route index element={<Navigate to="/apps" replace />} />
         <Route path="apps" element={<Dashboard />} />
         <Route path="apps/:appId" element={<AppRunner />} />
-        <Route path="database" element={<NovaDB />} />
-        <Route path="datasources" element={<DataSources />} />
-        <Route path="settings/users" element={<Users />} />
+        {/* NovaDB - 仅 admin 和 builder 可访问 */}
+        <Route
+          path="database"
+          element={
+            <RoleGuard allowedRoles={['admin', 'builder']}>
+              <NovaDB />
+            </RoleGuard>
+          }
+        />
+        {/* 数据源 - 仅 admin 和 builder 可访问 */}
+        <Route
+          path="datasources"
+          element={
+            <RoleGuard allowedRoles={['admin', 'builder']}>
+              <DataSources />
+            </RoleGuard>
+          }
+        />
+        {/* 用户管理 - 仅 admin 可访问 */}
+        <Route
+          path="settings/users"
+          element={
+            <RoleGuard allowedRoles={['admin']}>
+              <Users />
+            </RoleGuard>
+          }
+        />
       </Route>
 
       {/* Fallback */}

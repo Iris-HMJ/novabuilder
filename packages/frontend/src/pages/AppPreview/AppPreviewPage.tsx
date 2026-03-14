@@ -3,7 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Spin, message, Button } from 'antd';
 import { ArrowLeftOutlined, CloseOutlined } from '@ant-design/icons';
 import { appApi } from '../../api/app';
+import { queryApi } from '../../api/query';
 import { useEditorStore } from '../../stores/editorStore';
+import { useQueryStore } from '../../stores/queryStore';
 import PageRenderer from '../../engine/PageRenderer';
 import { AppShell } from '../../components/AppShell';
 
@@ -18,6 +20,9 @@ const AppPreviewPage: React.FC = () => {
   const loadApp = useEditorStore((state) => state.loadApp);
   const appDefinition = useEditorStore((state) => state.appDefinition);
   const appName = useEditorStore((state) => state.appName);
+  const queryResults = useQueryStore((state) => state.queryResults);
+  const setQueries = useQueryStore((state) => state.setQueries);
+  const setQueryResult = useQueryStore((state) => state.setQueryResult);
 
   // Load app data and initialize store
   useEffect(() => {
@@ -45,6 +50,21 @@ const AppPreviewPage: React.FC = () => {
 
         // Initialize editor store with app data (so event handlers work)
         loadApp(appId, app.name, definition);
+
+        // Load queries and their saved results
+        try {
+          const queries = await queryApi.list(appId);
+          setQueries(queries as any);
+
+          // Populate queryStore with saved results
+          queries.forEach((query) => {
+            if (query.lastResult) {
+              setQueryResult(query.id, query.lastResult);
+            }
+          });
+        } catch (error) {
+          console.error('Failed to load queries:', error);
+        }
 
         // Set current page to home page or first page
         const homePage = definition.pages.find(p => p.isHome) || definition.pages[0];
@@ -168,7 +188,7 @@ const AppPreviewPage: React.FC = () => {
             onPageChange={handlePageChange}
             mode="preview"
           >
-            <PageRenderer pageDef={currentPage} />
+            <PageRenderer pageDef={currentPage} queryResults={queryResults} />
           </AppShell>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999' }}>

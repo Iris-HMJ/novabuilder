@@ -11,7 +11,7 @@ export interface CategoryDef {
 }
 
 // Property field type
-export type PropertyFieldType = 'text' | 'number' | 'boolean' | 'select' | 'color' | 'expression' | 'columns' | 'options';
+export type PropertyFieldType = 'text' | 'number' | 'boolean' | 'select' | 'color' | 'expression' | 'columns' | 'options' | 'datasource' | 'textarea';
 
 // Property field definition
 export interface PropertyField {
@@ -21,6 +21,11 @@ export interface PropertyField {
   defaultValue?: any;
   options?: { label: string; value: string }[];
   description?: string;
+}
+
+// Dynamic binding property
+export interface DynamicBinding {
+  [propName: string]: string; // e.g., { data: "queries.nova.data" }
 }
 
 // Event definition
@@ -49,7 +54,7 @@ export interface ComponentDefinition {
   category: ComponentCategory;
   icon: string;
   defaultProps: Record<string, any>;
-  defaultStyle: { width: number; height: number };
+  defaultStyle: { width: number; height: number; borderRadius?: number; backgroundColor?: string };
   propertySchema: PropertyField[];
   eventDefs: EventDef[];
   render: React.FC<ComponentRenderProps>;

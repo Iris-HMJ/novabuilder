@@ -10,6 +10,7 @@ export interface Query {
   type: QueryType;
   content: any;
   options: any;
+  lastResult?: QueryResult;
   createdAt: string;
   updatedAt: string;
 }
@@ -52,6 +53,7 @@ export interface UpdateQueryDto {
   name?: string;
   content?: QueryContent;
   options?: QueryOptions;
+  lastResult?: QueryResult;
 }
 
 export interface QueryResult {

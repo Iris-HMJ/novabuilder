@@ -1,56 +1,124 @@
-import React from 'react';
-import { Select } from 'antd';
+import React, { useState, useCallback, useMemo } from 'react';
+import { Select as AntSelect, Spin } from 'antd';
 import type { ComponentDefinition, ComponentRenderProps } from '../../types';
 import { triggerComponentEvent } from '../../../engine/EventEngine';
 
 // Select component
 const SelectComponent: React.FC<ComponentRenderProps> = ({ props, style, mode, componentId }) => {
   const {
+    // Static props (from property panel)
     label = '',
     placeholder = '请选择',
-    options = [],
+    options: staticOptions = [],
     defaultValue,
     mode: selectMode = 'default',
     disabled = false,
-    allowClear = false,
+    allowClear = true,
+    showSearch = true,
+    helpText,
+    maxCount,
+
+    // Dynamic props (from query results - resolved by Canvas)
+    value: externalValue,
+    loading = false,
+    dynamicOptions,
   } = props;
 
   // In edit mode, always enable select
-  const isDisabled = mode === 'edit' ? false : disabled;
+  const isEditMode = mode === 'edit';
+  const isDisabled = isEditMode ? false : disabled;
 
-  // Convert options to Select options format
-  const selectOptions = Array.isArray(options) && options.length > 0
-    ? options.map((opt: any) => ({
-        label: opt.label || opt.value,
-        value: opt.value,
-      }))
-    : [
-        { label: '选项1', value: '1' },
-        { label: '选项2', value: '2' },
-        { label: '选项3', value: '3' },
-      ];
+  // Controlled/uncontrolled mode
+  const [internalValue, setInternalValue] = useState(defaultValue);
+  const currentValue = externalValue !== undefined ? externalValue : internalValue;
 
-  const handleChange = (value: any) => {
-    if (mode === 'edit') return;
-    triggerComponentEvent(componentId, 'onChange', { value });
-  };
+  // Merge static options and dynamic options (dynamic takes priority)
+  const mergedOptions = useMemo(() => {
+    // If dynamic options exist and have data, use them
+    if (dynamicOptions && Array.isArray(dynamicOptions) && dynamicOptions.length > 0) {
+      return dynamicOptions.map((opt: any) => ({
+        label: opt.label ?? opt.name ?? String(opt.value ?? opt),
+        value: opt.value ?? opt.id ?? opt,
+        disabled: opt.disabled,
+      }));
+    }
+    // Otherwise use static options
+    return staticOptions.map((opt: any) => ({
+      label: opt.label || opt.value,
+      value: opt.value,
+      disabled: opt.disabled,
+    }));
+  }, [staticOptions, dynamicOptions]);
+
+  // Default options if no options configured
+  const selectOptions = mergedOptions.length > 0 ? mergedOptions : [
+    { label: '选项1', value: '1' },
+    { label: '选项2', value: '2' },
+    { label: '选项3', value: '3' },
+  ];
+
+  // Convert mode to antd mode
+  const antMode = selectMode === 'single' ? undefined : selectMode === 'tags' ? 'tags' : selectMode === 'multiple' ? 'multiple' : undefined;
+
+  const handleChange = useCallback(
+    (value: any, option: any) => {
+      if (isEditMode) return;
+      setInternalValue(value);
+      triggerComponentEvent(componentId, 'onChange', { value, option });
+    },
+    [isEditMode, componentId]
+  );
 
   return (
-    <div style={{ ...style, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 4, padding: 4, boxSizing: 'border-box' }}>
+    <div
+      style={{
+        ...style,
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+        padding: 4,
+        boxSizing: 'border-box',
+      }}
+    >
       {label && (
-        <label style={{ fontSize: 12, color: '#666', flexShrink: 0 }}>{label}</label>
+        <label
+          style={{
+            fontSize: 12,
+            color: '#1F2937',
+            flexShrink: 0,
+            fontWeight: 500,
+          }}
+        >
+          {label}
+        </label>
       )}
-      <Select
+      <AntSelect
         id={componentId}
+        value={currentValue}
         placeholder={placeholder}
-        defaultValue={defaultValue}
         options={selectOptions}
-        mode={selectMode === 'multiple' ? 'multiple' : selectMode === 'tags' ? 'tags' : undefined}
+        mode={antMode}
         disabled={isDisabled}
+        loading={loading}
         allowClear={allowClear}
+        showSearch={showSearch}
+        maxCount={maxCount}
         onChange={handleChange}
+        filterOption={(input, option) =>
+          String(option?.label ?? '')
+            .toLowerCase()
+            .includes(input.toLowerCase())
+        }
         style={{ width: '100%', flex: 1 }}
+        notFoundContent={loading ? <Spin size="small" /> : '无匹配选项'}
       />
+      {helpText && (
+        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
+          {helpText}
+        </div>
+      )}
     </div>
   );
 };

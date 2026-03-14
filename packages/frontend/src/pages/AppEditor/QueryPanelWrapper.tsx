@@ -26,6 +26,8 @@ import {
   DeleteOutlined,
   CopyOutlined,
   EditOutlined,
+  SaveOutlined,
+  ClearOutlined,
 } from '@ant-design/icons';
 import CodeMirror from '@uiw/react-codemirror';
 import { sql } from '@codemirror/lang-sql';
@@ -46,6 +48,7 @@ interface LocalQuery {
   type: QueryType;
   content: QueryContent;
   options: Record<string, any>;
+  lastResult?: QueryResult;
   createdAt: string;
   updatedAt: string;
 }
@@ -107,6 +110,10 @@ const QueryPanelWrapper: React.FC<QueryPanelWrapperProps> = (props) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingNameValue, setEditingNameValue] = useState('');
   const nameInputRef = useRef<any>(null);
+
+  // Save/clear state
+  const [savedContent, setSavedContent] = useState<QueryContent | null>(null);
+  const [savedResult, setSavedResult] = useState<QueryResult | null>(null);
 
   // Inline name editing functions
   const startEditingName = useCallback(() => {
@@ -206,7 +213,7 @@ const QueryPanelWrapper: React.FC<QueryPanelWrapperProps> = (props) => {
     }
   }, [appId]);
 
-  const { setQueries: setQueryStoreQueries } = useQueryStore();
+  const { setQueries: setQueryStoreQueries, setQueryResult } = useQueryStore();
 
   const loadQueries = async () => {
     setLoading(true);
@@ -217,6 +224,13 @@ const QueryPanelWrapper: React.FC<QueryPanelWrapperProps> = (props) => {
       setQueries(localQueries);
       // Sync with queryStore
       setQueryStoreQueries(data as any[]);
+
+      // Also restore saved results to queryStore for components
+      localQueries.forEach((query) => {
+        if (query.lastResult) {
+          setQueryResult(query.id, query.lastResult);
+        }
+      });
     } catch (error: any) {
       message.error(error.response?.data?.message || '加载查询列表失败');
     } finally {
@@ -227,16 +241,21 @@ const QueryPanelWrapper: React.FC<QueryPanelWrapperProps> = (props) => {
   const loadDataSources = async () => {
     try {
       const data = await dataSourceApi.list();
-      // Add NovaDB as a built-in option at the top
-      const novadbOption: DataSource = {
-        id: 'novadb-builtin',
-        name: 'NovaDB',
-        type: 'novadb' as const,
-        createdBy: 'system',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setDataSources([novadbOption, ...data]);
+      // Check if NovaDB exists in the list, if not add it as fallback
+      const novadbDs = data.find(ds => ds.type === 'novadb');
+      if (!novadbDs) {
+        const novadbOption: DataSource = {
+          id: 'novadb',
+          name: 'NovaDB',
+          type: 'novadb' as const,
+          createdBy: 'system',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        setDataSources([novadbOption, ...data]);
+      } else {
+        setDataSources(data);
+      }
     } catch (error: any) {
       console.error('加载数据源失败', error);
     }
@@ -267,9 +286,21 @@ const QueryPanelWrapper: React.FC<QueryPanelWrapperProps> = (props) => {
     setContent(query.content || {});
     setOptions(query.options || {});
     setActiveTab(query.type);
-    setResult(null);
-    setShowResult(false);
     setPanelExpanded(true);
+
+    // Restore saved result if exists
+    const lastResult = query.lastResult;
+    if (lastResult) {
+      setResult(lastResult);
+      setSavedContent(query.content || {});
+      setSavedResult(lastResult);
+      setShowResult(true);
+      // Also save to queryStore for components to use
+      setQueryResult(query.id, lastResult);
+    } else {
+      setResult(null);
+      setShowResult(false);
+    }
   };
 
   // Create query
@@ -424,7 +455,7 @@ const QueryPanelWrapper: React.FC<QueryPanelWrapperProps> = (props) => {
       let res: QueryResult;
 
       // Check if NovaDB is selected
-      if (dataSourceId === 'novadb-builtin') {
+      if (dataSourceId === 'novadb' || dataSourceId === 'novadb-builtin') {
         // Use NovaDB API for SQL queries
         const sql = content.sql || '';
         const novadbResult = await novadbApi.executeSql(sql);
@@ -444,6 +475,13 @@ const QueryPanelWrapper: React.FC<QueryPanelWrapperProps> = (props) => {
         });
       }
       setResult(res);
+      // Save query result to queryStore for components to use
+      if (selectedQuery && !res.error) {
+        setQueryResult(selectedQuery.id, res);
+      }
+      // Auto-save content for display after panel collapse
+      setSavedContent({ ...content });
+      setSavedResult(res);
     } catch (error: any) {
       setResult({
         data: null,
@@ -454,6 +492,62 @@ const QueryPanelWrapper: React.FC<QueryPanelWrapperProps> = (props) => {
       setExecuting(false);
     }
   };
+
+  // Save query (save content and result)
+  const handleSave = async () => {
+    if (!selectedQuery) {
+      message.warning('请先创建或选择一个查询');
+      return;
+    }
+
+    if (!dataSourceId) {
+      message.warning('请选择数据源');
+      return;
+    }
+
+    try {
+      // Save content and result separately for persistence
+      await queryApi.update(selectedQuery.id, {
+        content,
+        options,
+        ...(result && !result.error ? { lastResult: result } : {}),
+      });
+
+      // Also save the result for display
+      if (result && !result.error) {
+        setSavedContent({ ...content });
+        setSavedResult(result);
+        // Save to queryStore for components
+        setQueryResult(selectedQuery.id, result);
+      }
+      message.success('查询已保存');
+      loadQueries();
+    } catch (error: any) {
+      message.error(error.response?.data?.message || '保存失败');
+    }
+  };
+
+  // Clear query (clear content and result)
+  const handleClear = () => {
+    setContent(getDefaultContent(queryType));
+    setResult(null);
+    setSavedContent(null);
+    setSavedResult(null);
+    setShowResult(false);
+  };
+
+  // Load saved content and result when panel expands
+  useEffect(() => {
+    if (panelExpanded && selectedQuery && savedContent) {
+      // Restore saved content to editor
+      setContent(savedContent);
+      // Restore saved result
+      if (savedResult && !savedResult.error) {
+        setResult(savedResult);
+        setShowResult(true);
+      }
+    }
+  }, [panelExpanded]);
 
   // Drag handlers
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -849,6 +943,22 @@ const QueryPanelWrapper: React.FC<QueryPanelWrapperProps> = (props) => {
         {/* Right: Run and Settings buttons */}
         <Space size="small">
           <Button
+            size="small"
+            icon={<SaveOutlined />}
+            onClick={handleSave}
+            disabled={!selectedQuery}
+          >
+            保存
+          </Button>
+          <Button
+            size="small"
+            icon={<ClearOutlined />}
+            onClick={handleClear}
+            disabled={!savedContent && !result}
+          >
+            清空
+          </Button>
+          <Button
             type="primary"
             size="small"
             icon={<PlayCircleOutlined />}
@@ -1013,9 +1123,9 @@ const QueryPanelWrapper: React.FC<QueryPanelWrapperProps> = (props) => {
               options={dataSources.map(ds => ({
                 label: (
                   <span>
-                    {ds.id === 'novadb-builtin' && <span style={{ color: '#1677ff', marginRight: 4 }}>★</span>}
+                    {ds.type === 'novadb' && <span style={{ color: '#1677ff', marginRight: 4 }}>★</span>}
                     {ds.name}
-                    {ds.id === 'novadb-builtin' && <span style={{ color: '#999', fontSize: 10, marginLeft: 4 }}>内置</span>}
+                    {ds.type === 'novadb' && <span style={{ color: '#999', fontSize: 10, marginLeft: 4 }}>内置</span>}
                   </span>
                 ),
                 value: ds.id,

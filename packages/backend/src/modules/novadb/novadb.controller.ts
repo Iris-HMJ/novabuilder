@@ -13,13 +13,19 @@ import {
   UseInterceptors,
   UploadedFile,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 import { NovaDBService } from './novadb.service';
 import { CreateTableDto, CreateColumnDto, UpdateColumnDto, QueryRowsDto, DeleteRowsDto, ExecuteSqlDto } from './dto/nova-db.dto';
+import { Roles } from '../../common/guards/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
 
 @Controller('novadb')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles('admin', 'builder')
 export class NovaDBController {
   constructor(private readonly novadbService: NovaDBService) {}
 

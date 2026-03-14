@@ -25,6 +25,9 @@ export class Query {
   @Column({ type: 'jsonb', default: {} })
   options: any;
 
+  @Column({ type: 'jsonb', nullable: true })
+  lastResult: any;
+
   @CreateDateColumn()
   createdAt: Date;
 

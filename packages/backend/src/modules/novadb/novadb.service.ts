@@ -52,6 +52,19 @@ export class NovaDBService {
     return table;
   }
 
+  async findTableByName(name: string): Promise<NovaTable | null> {
+    const table = await this.tableRepository.findOne({
+      where: { name },
+      relations: ['columns'],
+    });
+    if (!table) {
+      return null;
+    }
+    // Sort columns by columnOrder
+    table.columns.sort((a, b) => a.columnOrder - b.columnOrder);
+    return table;
+  }
+
   async createTable(name: string, createdBy: string): Promise<NovaTable> {
     // Check if table name already exists
     const existing = await this.tableRepository.findOne({ where: { name } });

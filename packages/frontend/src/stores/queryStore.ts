@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Query, QueryResult, QueryType, QueryContent } from '@novabuilder/shared';
+import { queryApi } from '../api/query';
 
 interface QueryState {
   // Query data
@@ -21,6 +22,12 @@ interface QueryState {
   clearQueryResult: (queryId: string) => void;
   setLoading: (loading: boolean) => void;
   setExecuting: (executing: boolean) => void;
+
+  // Execute query (supports both stored queries and inline page queries)
+  executeQuery: (query: any) => Promise<void>;
+
+  // Clear all results
+  clearAllResults: () => void;
 
   // Helpers
   getActiveQuery: () => Query | null;
@@ -83,6 +90,61 @@ export const useQueryStore = create<QueryState>()((set, get) => ({
     const { queryResults } = get();
     return queryResults[queryId] || null;
   },
+
+  // Execute a query - supports both stored queries (by id) and inline page queries (full query object)
+  executeQuery: async (query: any) => {
+    const queryId = query.id;
+    const queryName = query.name || queryId;
+
+    // Mark as loading
+    set((state) => ({
+      isExecuting: true,
+      queryResults: {
+        ...state.queryResults,
+        [queryId]: { data: undefined, executionTime: 0, error: undefined },
+        [queryName]: { data: undefined, executionTime: 0, error: undefined },
+      },
+    }));
+
+    try {
+      let result: QueryResult;
+
+      if (query.id && !query.sql && !query.content?.sql) {
+        // Stored query - use API with query ID
+        result = await queryApi.execute(query.id);
+      } else {
+        // Inline query - use preview API with query config
+        result = await queryApi.preview({
+          appId: query.appId || '',
+          dataSourceId: query.dataSourceId,
+          type: query.type || 'sql',
+          content: query.content || { sql: query.sql || '' },
+        });
+      }
+
+      // Store result by both id and name
+      set((state) => ({
+        isExecuting: false,
+        queryResults: {
+          ...state.queryResults,
+          [queryId]: result,
+          [queryName]: result,
+        },
+      }));
+    } catch (error: any) {
+      set((state) => ({
+        isExecuting: false,
+        queryResults: {
+          ...state.queryResults,
+          [queryId]: { data: undefined, executionTime: 0, error: error.message },
+          [queryName]: { data: undefined, executionTime: 0, error: error.message },
+        },
+      }));
+    }
+  },
+
+  // Clear all query results
+  clearAllResults: () => set({ queryResults: {} }),
 }));
 
 // Helper to create a new query with defaults

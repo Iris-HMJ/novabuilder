@@ -12,6 +12,7 @@ export interface Query {
   type: QueryType;
   content: QueryContent;
   options: QueryOptions;
+  lastResult?: QueryResult; // Saved result for persistence
   createdAt: Date;
   updatedAt: Date;
 }
@@ -86,6 +87,7 @@ export interface UpdateQueryDto {
   name?: string;
   content?: QueryContent;
   options?: QueryOptions;
+  lastResult?: QueryResult;
 }
 
 export interface ExecuteQueryDto {

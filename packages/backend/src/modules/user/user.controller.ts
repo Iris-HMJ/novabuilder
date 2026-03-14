@@ -2,9 +2,12 @@ import { Controller, Get, Patch, Delete, Body, Param, UseGuards } from '@nestjs/
 import { AuthGuard } from '@nestjs/passport';
 import { UserService } from './user.service';
 import { UserRole } from '@novabuilder/shared/types/user';
+import { Roles } from '../../common/guards/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
 
 @Controller('users')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles('admin')
 export class UserController {
   constructor(private userService: UserService) {}
 

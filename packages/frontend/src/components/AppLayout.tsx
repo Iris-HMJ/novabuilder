@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Avatar, Dropdown, Space, Button } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Space, Button, Tag } from 'antd';
 import {
   LogoutOutlined,
   UserOutlined,
@@ -9,8 +9,21 @@ import {
 } from '@ant-design/icons';
 import { useAuthStore } from '../stores/authStore';
 import { navigationConfig } from '../config/navigation';
+import type { UserRole } from '@novabuilder/shared';
 
 const { Header, Sider, Content } = Layout;
+
+const roleColors: Record<UserRole, string> = {
+  admin: 'red',
+  builder: 'blue',
+  end_user: 'green',
+};
+
+const roleLabels: Record<UserRole, string> = {
+  admin: '管理员',
+  builder: '开发者',
+  end_user: '终端用户',
+};
 
 // 模式 A 标准布局：顶部导航 56px + 页面主体居中
 const AppLayout = () => {
@@ -22,7 +35,7 @@ const AppLayout = () => {
   // 根据用户角色过滤导航项
   const filteredNavItems = navigationConfig.filter((item) => {
     if (!item.roles) return true;
-    return user && item.roles.includes(user.role);
+    return user && item.roles.includes(user.role as UserRole);
   });
 
   const userMenuItems = [
@@ -84,6 +97,11 @@ const AppLayout = () => {
           <Space style={{ cursor: 'pointer', color: '#fff' }}>
             <Avatar icon={<UserOutlined />} size="small" />
             <span>{user?.name || user?.email}</span>
+            {user?.role && (
+              <Tag color={roleColors[user.role as UserRole]} style={{ marginLeft: 8 }}>
+                {roleLabels[user.role as UserRole]}
+              </Tag>
+            )}
           </Space>
         </Dropdown>
       </Header>

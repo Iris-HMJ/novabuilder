@@ -21,12 +21,14 @@ export const navigationConfig: NavItem[] = [
     icon: <DatabaseOutlined />,
     label: 'NovaDB',
     path: '/database',
+    roles: ['admin', 'builder'], // 只有 admin 和 builder 可见
   },
   {
     key: 'datasources',
     icon: <ApiOutlined />,
     label: '数据源',
     path: '/datasources',
+    roles: ['admin', 'builder'], // 只有 admin 和 builder 可见
   },
   {
     key: 'users',

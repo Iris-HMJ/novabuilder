@@ -68,6 +68,16 @@ export interface PageDef {
   hidden?: boolean;
   onLoadQueries?: string[];
   icon?: string;
+  // Inline queries for this page (used by AI-generated apps)
+  queries?: Array<{
+    id: string;
+    name: string;
+    dataSourceId: string;
+    type: 'sql' | 'javascript' | 'visual' | 'rest';
+    content: any;
+    trigger?: string;
+    options?: any;
+  }>;
 }
 
 // Partial type helper for updates

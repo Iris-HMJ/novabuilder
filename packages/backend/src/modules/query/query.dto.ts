@@ -9,8 +9,8 @@ export class CreateQueryDto {
   @IsString()
   name: string;
 
-  @Matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$|^novadb-builtin$/, {
-    message: 'dataSourceId must be a valid UUID or novadb-builtin',
+  @Matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$|^novadb(-builtin)?$/, {
+    message: 'dataSourceId must be a valid UUID or novadb',
   })
   dataSourceId: string;
 
@@ -37,6 +37,10 @@ export class UpdateQueryDto {
   @IsOptional()
   @IsObject()
   options?: any;
+
+  @IsOptional()
+  @IsObject()
+  lastResult?: any;
 }
 
 export class ExecuteQueryDto {
@@ -49,8 +53,8 @@ export class PreviewQueryDto {
   @IsUUID()
   appId: string;
 
-  @Matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$|^novadb-builtin$/, {
-    message: 'dataSourceId must be a valid UUID or novadb-builtin',
+  @Matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$|^novadb(-builtin)?$/, {
+    message: 'dataSourceId must be a valid UUID or novadb',
   })
   dataSourceId: string;
 

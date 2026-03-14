@@ -11,12 +11,38 @@ import {
 } from '@ant-design/icons';
 import { useEditorStore } from '../../stores/editorStore';
 import { useHistoryStore } from '../../stores/historyStore';
+import { useQueryStore } from '../../stores/queryStore';
+import { useAutoRunQueries } from '../../hooks/useAutoRunQueries';
 import { registry } from '../../registry';
-import type { ComponentNode, ComponentType } from '@novabuilder/shared';
+import type { ComponentNode, ComponentType, QueryResult } from '@novabuilder/shared';
 
 const GRID_SIZE = 8;
 const MIN_SIZE = 24;
 const ALIGNMENT_THRESHOLD = 5;
+
+// Resolve dynamic bindings for component props
+const resolveComponentProps = (props: Record<string, any>, queryResults: Record<string, QueryResult> = {}): Record<string, any> => {
+  const resolved = { ...props };
+
+  // Handle dynamic bindings - e.g., { data: "queries.getAllEmployees.data" }
+  const dynamic = props.dynamic || {};
+  for (const [propName, bindingExpr] of Object.entries(dynamic)) {
+    if (typeof bindingExpr === 'string' && bindingExpr.startsWith('queries.')) {
+      // Extract query name from binding like "queries.getAllEmployees.data" -> "getAllEmployees"
+      const parts = bindingExpr.split('.');
+      if (parts.length >= 2) {
+        const queryName = parts[1];
+        // Try to find by query name first, then by query id
+        const queryResult = queryResults[queryName] || queryResults[queryName.toLowerCase()];
+        if (queryResult?.data) {
+          resolved[propName] = queryResult.data;
+        }
+      }
+    }
+  }
+
+  return resolved;
+};
 
 interface DragState {
   isDragging: boolean;
@@ -59,6 +85,9 @@ interface CanvasProps {
 const Canvas: React.FC<CanvasProps> = ({ isDraggingFromPanel }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // Query results for components
+  const queryResults = useQueryStore((state) => state.queryResults);
 
   // Canvas state
   const [isPanning, setIsPanning] = useState(false);
@@ -129,6 +158,9 @@ const Canvas: React.FC<CanvasProps> = ({ isDraggingFromPanel }) => {
 
   const currentPage = appDefinition.pages.find((p) => p.id === currentPageId);
   const components = currentPage?.components || [];
+
+  // Auto-run queries on page load (queryResults already defined above)
+  useAutoRunQueries(currentPage, queryResults);
 
   // Snap to grid
   const snapToGrid = useCallback((value: number) => {
@@ -894,10 +926,11 @@ const Canvas: React.FC<CanvasProps> = ({ isDraggingFromPanel }) => {
           <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
             {ComponentRender ? (
               <ComponentRender
-                props={comp.props}
+                props={resolveComponentProps(comp.props, queryResults)}
                 style={{ width: '100%', height: '100%' }}
                 mode={mode}
                 componentId={comp.id}
+                queries={queryResults}
               />
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999' }}>

@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { AppModule as AppManagementModule } from './modules/app/app.module';
 import { DataSourceModule } from './modules/datasource/datasource.module';
 import { QueryModule } from './modules/query/query.module';
 import { NovaDBModule } from './modules/novadb/novadb.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -14,6 +16,11 @@ import { NovaDBModule } from './modules/novadb/novadb.module';
       isGlobal: true,
       envFilePath: '../../.env',
     }),
+    // Rate limiting
+    ThrottlerModule.forRoot([{
+      ttl: 60000,  // 60 seconds
+      limit: 100,  // 100 requests per 60 seconds per IP
+    }]),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -35,6 +42,7 @@ import { NovaDBModule } from './modules/novadb/novadb.module';
     DataSourceModule,
     QueryModule,
     NovaDBModule,
+    AiModule,
   ],
 })
 export class AppModule {}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Row, Col, Button, Input, Space, Tag, Modal, message, Spin, Select, Empty, Dropdown } from 'antd';
 import { PlusOutlined, SearchOutlined, MoreOutlined, CopyOutlined, DeleteOutlined, EditOutlined as RenameOutlined, RobotOutlined, FileTextOutlined } from '@ant-design/icons';
 import { appApi } from '../api/app';
+import { useAuthStore } from '../stores/authStore';
 import type { App } from '@novabuilder/shared';
 
 const { Search } = Input;
@@ -26,6 +27,7 @@ type CreateType = 'blank' | 'ai';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [apps, setApps] = useState<App[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -34,6 +36,9 @@ const Dashboard = () => {
   const [createLoading, setCreateLoading] = useState(false);
   const [createType, setCreateType] = useState<CreateType>('blank');
   const [newAppName, setNewAppName] = useState('未命名应用');
+
+  // 判断是否为 end_user
+  const isEndUser = user?.role === 'end_user';
 
   // 重命名状态
   const [renameModalOpen, setRenameModalOpen] = useState(false);
@@ -190,57 +195,63 @@ const Dashboard = () => {
             onChange={(e) => setSearchText(e.target.value)}
             allowClear
           />
-          <Select
-            value={sortBy}
-            onChange={setSortBy}
-            style={{ width: 140 }}
-            options={[
-              { value: 'updatedAt', label: '最近更新' },
-              { value: 'createdAt', label: '最近创建' },
-              { value: 'name', label: '名称' },
-            ]}
-          />
+          {!isEndUser && (
+            <Select
+              value={sortBy}
+              onChange={setSortBy}
+              style={{ width: 140 }}
+              options={[
+                { value: 'updatedAt', label: '最近更新' },
+                { value: 'createdAt', label: '最近创建' },
+                { value: 'name', label: '名称' },
+              ]}
+            />
+          )}
         </Space>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalOpen(true)} size="large">
-          新建应用
-        </Button>
+        {!isEndUser && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalOpen(true)} size="large">
+            新建应用
+          </Button>
+        )}
       </div>
 
       <Spin spinning={loading}>
         {apps.length === 0 && !searchText ? (
-          // 空状态 - 显示 AI 生成卡片
+          // 空状态
           <div>
-            <Row gutter={[16, 16]}>
-              {/* AI 生成特殊卡片 */}
-              <Col xs={24} sm={12} lg={6}>
-                <Card
-                  className="ai-create-card"
-                  hoverable
-                  onClick={() => {
-                    setCreateType('ai');
-                    setCreateModalOpen(true);
-                  }}
-                  style={{ height: 200 }}
-                >
-                  <div className="ai-card-content">
-                    <RobotOutlined className="ai-icon" />
-                    <div className="ai-title">用 AI 创建你的第一个应用</div>
-                    <div className="ai-desc">描述你的需求，AI 自动生成应用</div>
-                    <Button type="primary" className="ai-btn">开始创建</Button>
-                  </div>
-                </Card>
-              </Col>
-            </Row>
+            {!isEndUser && (
+              <Row gutter={[16, 16]}>
+                {/* AI 生成特殊卡片 */}
+                <Col xs={24} sm={12} lg={6}>
+                  <Card
+                    className="ai-create-card"
+                    hoverable
+                    onClick={() => {
+                      setCreateType('ai');
+                      setCreateModalOpen(true);
+                    }}
+                    style={{ height: 200 }}
+                  >
+                    <div className="ai-card-content">
+                      <RobotOutlined className="ai-icon" />
+                      <div className="ai-title">用 AI 创建你的第一个应用</div>
+                      <div className="ai-desc">描述你的需求，AI 自动生成应用</div>
+                      <Button type="primary" className="ai-btn">开始创建</Button>
+                    </div>
+                  </Card>
+                </Col>
+              </Row>
+            )}
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="还没有应用，点击上方按钮开始创建"
+              description={isEndUser ? "暂无可用应用" : "还没有应用，点击上方按钮开始创建"}
               style={{ marginTop: 48 }}
             />
           </div>
         ) : (
           <Row gutter={[16, 16]}>
             {/* AI 生成特殊卡片 - 始终显示在第一个位置 */}
-            {!searchText && (
+            {!searchText && !isEndUser && (
               <Col xs={24} sm={12} lg={6}>
                 <Card
                   className="ai-create-card"
@@ -268,7 +279,7 @@ const Dashboard = () => {
                   className="app-card"
                   hoverable
                   style={{ height: 200 }}
-                  onClick={() => navigate(`/apps/${app.id}/edit`)}
+                  onClick={() => navigate(isEndUser ? `/apps/${app.id}` : `/apps/${app.id}/edit`)}
                 >
                   <Card.Meta
                     title={
@@ -287,17 +298,19 @@ const Dashboard = () => {
                       </div>
                     }
                   />
-                  <div className="card-actions" onClick={(e) => e.stopPropagation()}>
-                    <Dropdown
-                      menu={{ items: getAppActions(app) }}
-                      trigger={['click']}
-                      placement="bottomRight"
-                    >
-                      <Button type="text" icon={<MoreOutlined />}>
-                        更多
-                      </Button>
-                    </Dropdown>
-                  </div>
+                  {!isEndUser && (
+                    <div className="card-actions" onClick={(e) => e.stopPropagation()}>
+                      <Dropdown
+                        menu={{ items: getAppActions(app) }}
+                        trigger={['click']}
+                        placement="bottomRight"
+                      >
+                        <Button type="text" icon={<MoreOutlined />}>
+                          更多
+                        </Button>
+                      </Dropdown>
+                    </div>
+                  )}
                 </Card>
               </Col>
             ))}

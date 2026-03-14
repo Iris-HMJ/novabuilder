@@ -53,6 +53,12 @@ export class DataSourceService implements OnModuleInit {
     return dataSource;
   }
 
+  async findByType(type: string): Promise<DataSource | null> {
+    return this.dataSourceRepository.findOne({
+      where: { type: type as 'postgresql' | 'mysql' | 'restapi' | 'novadb' }
+    });
+  }
+
   // Get data source with decrypted config (password masked)
   async getDecryptedConfigWithMask(id: string): Promise<any> {
     const dataSource = await this.findById(id);
@@ -124,6 +130,14 @@ export class DataSourceService implements OnModuleInit {
   }
 
   async testConnection(id: string): Promise<TestConnectionResult> {
+    // Handle special novaDB IDs
+    if (id === 'novadb' || id === 'novadb-builtin') {
+      const novadbDs = await this.findByType('novadb');
+      if (!novadbDs) {
+        throw new NotFoundException('NovaDB data source not found');
+      }
+      return { success: true, message: 'NovaDB is always connected' };
+    }
     const dataSource = await this.findById(id);
     const result = await this.testConnectionByType(dataSource.type, dataSource.config);
 
@@ -147,6 +161,16 @@ export class DataSourceService implements OnModuleInit {
   }
 
   async getSchema(id: string): Promise<SchemaResult> {
+    // Handle special novaDB IDs
+    if (id === 'novadb' || id === 'novadb-builtin') {
+      const novadbDs = await this.findByType('novadb');
+      if (!novadbDs) {
+        throw new NotFoundException('NovaDB data source not found');
+      }
+      const config = JSON.parse(this.encryptionService.decrypt(novadbDs.config));
+      const adapter = DataSourceAdapterFactory.createAdapter(novadbDs.type, config);
+      return adapter.getSchema();
+    }
     const dataSource = await this.findById(id);
     const config = JSON.parse(this.encryptionService.decrypt(dataSource.config));
     const adapter = DataSourceAdapterFactory.createAdapter(dataSource.type, config);

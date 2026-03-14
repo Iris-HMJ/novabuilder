@@ -7,6 +7,7 @@ import {
   PlayCircleOutlined,
 } from '@ant-design/icons';
 import { useEditorStore } from '../../stores/editorStore';
+import { useQueryStore } from '../../stores/queryStore';
 import { registry, PropertyField } from '../../registry';
 import { ExpressionInput, ColumnsEditor, OptionsEditor } from './components';
 import type { EventAction, ActionType } from '@novabuilder/shared';
@@ -41,6 +42,8 @@ const RightPanel: React.FC = () => {
     selectedComponentIds,
     currentPageId,
   } = useEditorStore();
+
+  const { queries, queryResults } = useQueryStore();
 
   // Get selected components with proper reactivity
   const selectedComponents = React.useMemo(() => {
@@ -157,6 +160,74 @@ const RightPanel: React.FC = () => {
           />
         );
 
+      case 'datasource':
+        // Get query list from queryStore, plus 'raw' option
+        const queryList = [
+          { label: 'raw json', value: 'raw' },
+          ...(queries || []).map((q: any) => ({
+            label: q.name,
+            value: q.id,
+          })),
+        ];
+
+        const handleDataSourceChange = (val: string) => {
+          if (!val || val === 'raw') {
+            // Clear dynamic binding when selecting raw or clearing
+            updateComponent(selectedComponent!.id, {
+              props: { ...selectedComponent!.props, [field.key]: val, dynamic: {} }
+            });
+            return;
+          }
+
+          // For query data source, set dynamic binding and auto-generate columns
+          const queryResult = queryResults?.[val];
+          let columns: any[] = [];
+
+          // Auto-generate columns from query result data
+          if (queryResult?.data && Array.isArray(queryResult.data) && queryResult.data.length > 0) {
+            const firstRow = queryResult.data[0];
+            columns = Object.keys(firstRow).map((key) => ({
+              title: key,
+              dataIndex: key,
+              key: key,
+            }));
+          }
+
+          // Update component with data source and dynamic binding
+          updateComponent(selectedComponent!.id, {
+            props: {
+              ...selectedComponent!.props,
+              [field.key]: val,
+              dynamic: { data: `queries.${val}.data` },
+              columns: columns.length > 0 ? columns : [],
+            }
+          });
+        };
+
+        return (
+          <Select
+            value={value}
+            onChange={handleDataSourceChange}
+            options={queryList}
+            placeholder="选择数据源"
+            style={{ width: '100%' }}
+            allowClear
+          />
+        );
+
+      case 'textarea':
+        return (
+          <Input.TextArea
+            value={value}
+            onChange={(e) => updateComponent(selectedComponent!.id, {
+              props: { ...selectedComponent!.props, [field.key]: e.target.value }
+            })}
+            placeholder={field.description || '输入JSON数据'}
+            rows={4}
+            style={{ fontFamily: 'monospace' }}
+          />
+        );
+
       default:
         return (
           <Input
@@ -184,7 +255,7 @@ const RightPanel: React.FC = () => {
     const propertyFields = componentDef.propertySchema || [];
 
     return (
-      <div style={{ padding: 12 }}>
+      <div style={{ padding: 12, overflow: 'auto', flex: 1 }}>
         <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Space>
             <Text strong>{componentDef.name}</Text>
@@ -198,11 +269,18 @@ const RightPanel: React.FC = () => {
             />
           </Form.Item>
 
-          {propertyFields.map((field) => (
-            <Form.Item key={field.key} label={field.label}>
-              {renderPropertyField(field)}
-            </Form.Item>
-          ))}
+          {propertyFields.map((field) => {
+            // For Table component, show rawData only when 'raw' is selected
+            if (selectedComponent?.type === 'Table') {
+              const dataSource = selectedComponent.props?.dataSource;
+              if (field.key === 'rawData' && dataSource !== 'raw') return null;
+            }
+            return (
+              <Form.Item key={field.key} label={field.label}>
+                {renderPropertyField(field)}
+              </Form.Item>
+            );
+          })}
 
           {propertyFields.length === 0 && (
             <Text type="secondary">该组件暂无属性配置</Text>
@@ -223,7 +301,7 @@ const RightPanel: React.FC = () => {
     };
 
     return (
-      <div style={{ padding: 12 }}>
+      <div style={{ padding: 12, overflow: 'auto', flex: 1 }}>
         <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text strong>样式</Text>
         </div>
@@ -362,69 +440,71 @@ const RightPanel: React.FC = () => {
     };
 
     return (
-      <div style={{ padding: 12 }}>
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text strong>事件</Text>
-        </div>
+      <>
+        <div style={{ padding: 12, overflow: 'auto', flex: 1 }}>
+          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text strong>事件</Text>
+          </div>
 
-        {eventDefs.length === 0 ? (
-          <Empty description="该组件暂无事件" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-        ) : (
-          eventDefs.map((eventDef) => {
-            const eventConfig = events.find(e => e.event === eventDef.event);
-            const actions = eventConfig?.actions || [];
+          {eventDefs.length === 0 ? (
+            <Empty description="该组件暂无事件" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          ) : (
+            eventDefs.map((eventDef) => {
+              const eventConfig = events.find(e => e.event === eventDef.event);
+              const actions = eventConfig?.actions || [];
 
-            return (
-              <div key={eventDef.event} style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <Text strong>{eventDef.label}</Text>
-                  <Button
-                    type="primary"
-                    size="small"
-                    icon={<PlusOutlined />}
-                    onClick={() => handleAddEvent(eventDef.event)}
-                  >
-                    添加动作
-                  </Button>
-                </div>
-
-                {actions.length === 0 ? (
-                  <div style={{ padding: 8, background: '#f5f5f5', borderRadius: 4, fontSize: 12, color: '#999' }}>
-                    暂无动作配置
-                  </div>
-                ) : (
-                  actions.map((action) => (
-                    <div
-                      key={action.id}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: 8,
-                        background: '#f5f5f5',
-                        borderRadius: 4,
-                        marginBottom: 4,
-                        fontSize: 12,
-                      }}
+              return (
+                <div key={eventDef.event} style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <Text strong>{eventDef.label}</Text>
+                    <Button
+                      type="primary"
+                      size="small"
+                      icon={<PlusOutlined />}
+                      onClick={() => handleAddEvent(eventDef.event)}
                     >
-                      <div>
-                        <PlayCircleOutlined style={{ marginRight: 4 }} />
-                        {getActionDescription(action)}
-                      </div>
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<DeleteOutlined />}
-                        danger
-                        onClick={() => handleDeleteAction(eventDef.event, action.id)}
-                      />
+                      添加动作
+                    </Button>
+                  </div>
+
+                  {actions.length === 0 ? (
+                    <div style={{ padding: 8, background: '#f5f5f5', borderRadius: 4, fontSize: 12, color: '#999' }}>
+                      暂无动作配置
                     </div>
-                  ))
-                )}
-              </div>
-            );
-          })
-        )}
+                  ) : (
+                    actions.map((action) => (
+                      <div
+                        key={action.id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: 8,
+                          background: '#f5f5f5',
+                          borderRadius: 4,
+                          marginBottom: 4,
+                          fontSize: 12,
+                        }}
+                      >
+                        <div>
+                          <PlayCircleOutlined style={{ marginRight: 4 }} />
+                          {getActionDescription(action)}
+                        </div>
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          danger
+                          onClick={() => handleDeleteAction(eventDef.event, action.id)}
+                        />
+                      </div>
+                    ))
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
 
         {/* Action Modal */}
         <Modal
@@ -475,7 +555,7 @@ const RightPanel: React.FC = () => {
             </Form.Item>
           </Form>
         </Modal>
-      </div>
+      </>
     );
   };
 
@@ -623,6 +703,20 @@ const RightPanel: React.FC = () => {
           />
         </div>
       </div>
+
+      <style>{`
+        .ant-tabs-content-holder {
+          flex: 1;
+          overflow: hidden !important;
+        }
+        .ant-tabs-content {
+          height: 100%;
+        }
+        .ant-tabs-tabpane {
+          height: 100%;
+          overflow: auto !important;
+        }
+      `}</style>
 
       {/* Icon Navigation Bar - 48px width */}
       <div

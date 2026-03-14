@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Spin, message, Modal, Layout } from 'antd';
 import { useEditorStore } from '../../stores/editorStore';
 import { useHistoryStore } from '../../stores/historyStore';
+import { useAiStore } from '../../stores/aiStore';
 import { appApi } from '../../api/app';
 import type { AppDefinition } from '@novabuilder/shared';
 import EditorTopBar from './EditorTopBar';
@@ -11,6 +12,7 @@ import Canvas from './Canvas';
 import RightPanel from './RightPanel';
 import QueryPanelWrapper, { QueryPanelRef } from './QueryPanelWrapper';
 import { AppShell } from '../../components/AppShell';
+import { AIPanel } from '../../components/AIPanel';
 
 // Create empty app definition
 const createEmptyAppDefinition = (): AppDefinition => ({
@@ -31,6 +33,7 @@ const AppEditorPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDraggingFromPanel, setIsDraggingFromPanel] = useState(false);
   const queryPanelRef = useRef<QueryPanelRef>(null);
+  const isAiOpen = useAiStore((s) => s.isOpen);
 
   const {
     loadApp,
@@ -121,7 +124,7 @@ const AppEditorPage: React.FC = () => {
 
   // Handle AI button (placeholder)
   const handleAI = useCallback(() => {
-    message.info('AI 功能正在开发中');
+    useAiStore.getState().togglePanel();
   }, []);
 
   // Keyboard shortcuts
@@ -334,9 +337,14 @@ const AppEditorPage: React.FC = () => {
             top: 0,
             bottom: 0,
             zIndex: 10,
+            display: 'flex',
           }}
         >
-          <RightPanel />
+          {isAiOpen ? (
+            <AIPanel appId={appId!} />
+          ) : (
+            <RightPanel />
+          )}
         </div>
       </div>
     </Layout>

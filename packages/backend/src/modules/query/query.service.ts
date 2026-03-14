@@ -62,7 +62,7 @@ export class QueryService {
     return this.queryRepository.save(query);
   }
 
-  async update(id: string, data: { name?: any; content?: any; options?: any }): Promise<Query> {
+  async update(id: string, data: { name?: any; content?: any; options?: any; lastResult?: any }): Promise<Query> {
     const query = await this.findById(id);
 
     if (data.name !== undefined) {
@@ -73,6 +73,9 @@ export class QueryService {
     }
     if (data.options !== undefined) {
       query.options = data.options;
+    }
+    if (data.lastResult !== undefined) {
+      query.lastResult = data.lastResult;
     }
 
     return this.queryRepository.save(query);
@@ -167,7 +170,7 @@ export class QueryService {
     params?: Record<string, any>
   ): Promise<QueryResultData> {
     // Handle NovaDB built-in datasource
-    if (dataSourceId === 'novadb-builtin') {
+    if (dataSourceId === 'novadb' || dataSourceId === 'novadb-builtin') {
       // Convert params object to array for NovaDB
       const paramArray = params ? Object.values(params) : [];
       const result = await this.novadbService.executeSql(sql, paramArray);
